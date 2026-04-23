@@ -9,13 +9,19 @@ from mysql.connector import Error
 app = Flask(__name__)
 CORS(app)
 
+# 确保 JSON 响应使用 UTF-8 编码，不转义中文字符
+app.config['JSON_AS_ASCII'] = False
+app.config['JSON_SORT_KEYS'] = False
+
 # 数据库配置
 DB_CONFIG = {
     'host': os.getenv('MYSQL_HOST', 'localhost'),
     'port': int(os.getenv('MYSQL_PORT', 3306)),
     'database': os.getenv('MYSQL_DATABASE', 'recipe_db'),
     'user': os.getenv('MYSQL_USER', 'recipe_user'),
-    'password': os.getenv('MYSQL_PASSWORD', 'recipe_password')
+    'password': os.getenv('MYSQL_PASSWORD', 'recipe_password'),
+    'charset': 'utf8mb4',
+    'use_unicode': True
 }
 
 
@@ -290,7 +296,7 @@ def create_recipe(validated_data):
         
         # 准备步骤数据
         steps = validated_data.get('steps', [])
-        steps_json = json.dumps([s.strip() for s in steps if s and s.strip()]) if steps else None
+        steps_json = json.dumps([s.strip() for s in steps if s and s.strip()], ensure_ascii=False) if steps else None
         
         # 插入食谱
         insert_recipe_query = '''
@@ -399,7 +405,7 @@ def update_recipe(recipe_id, validated_data):
         
         # 准备步骤数据
         steps = validated_data.get('steps', [])
-        steps_json = json.dumps([s.strip() for s in steps if s and s.strip()]) if steps else None
+        steps_json = json.dumps([s.strip() for s in steps if s and s.strip()], ensure_ascii=False) if steps else None
         
         # 更新食谱
         update_recipe_query = '''
