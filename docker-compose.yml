@@ -38,7 +38,7 @@ services:
       MYSQL_USER: recipe_user
       MYSQL_PASSWORD: recipe_password
     ports:
-      - "5000:5000"
+      - "5001:5000"
     depends_on:
       mysql:
         condition: service_healthy

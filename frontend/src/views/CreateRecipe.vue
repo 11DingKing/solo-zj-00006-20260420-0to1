@@ -151,7 +151,7 @@
             >
               <span class="step-number">步骤 {{ index + 1 }}</span>
               <el-input
-                v-model="step"
+                v-model="recipeForm.steps[index]"
                 type="textarea"
                 :rows="2"
                 placeholder="请输入烹饪步骤"

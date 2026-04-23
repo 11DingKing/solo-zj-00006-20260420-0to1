@@ -49,7 +49,7 @@
                     :icon="Delete"
                     circle
                     size="small"
-                    @click="removeFromMenu(scope.row.recipe_id)
+                    @click="removeFromMenu(scope.row.recipe_id)"
                   />
                 </template>
               </el-table-column>

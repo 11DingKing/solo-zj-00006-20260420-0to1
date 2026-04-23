@@ -1,5 +1,6 @@
 import os
 import json
+import functools
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
@@ -32,6 +33,7 @@ def get_db_connection():
 def validate_request(required_fields=None, field_types=None):
     """请求参数校验装饰器"""
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if request.method in ['POST', 'PUT']:
                 data = request.get_json()
@@ -276,7 +278,7 @@ def create_recipe(validated_data):
         for idx, ing in enumerate(ingredients):
             if not ing.get('name') or not ing.get('name').strip():
                 return jsonify({'message': f'第 {idx + 1} 个食材名称不能为空'}), 400
-            if 'amount' not in ing or ing['amount'] <= 0:
+            if 'amount' not in ing or float(ing['amount']) <= 0:
                 return jsonify({'message': f'第 {idx + 1} 个食材用量必须大于0'}), 400
             if not ing.get('unit_id'):
                 return jsonify({'message': f'第 {idx + 1} 个食材请选择单位'}), 400
@@ -315,7 +317,7 @@ def create_recipe(validated_data):
             cursor.execute(insert_ingredient_query, (
                 recipe_id,
                 ing['name'].strip(),
-                ing['amount'],
+                float(ing['amount']),
                 ing['unit_id']
             ))
         
@@ -385,7 +387,7 @@ def update_recipe(recipe_id, validated_data):
         for idx, ing in enumerate(ingredients):
             if not ing.get('name') or not ing.get('name').strip():
                 return jsonify({'message': f'第 {idx + 1} 个食材名称不能为空'}), 400
-            if 'amount' not in ing or ing['amount'] <= 0:
+            if 'amount' not in ing or float(ing['amount']) <= 0:
                 return jsonify({'message': f'第 {idx + 1} 个食材用量必须大于0'}), 400
             if not ing.get('unit_id'):
                 return jsonify({'message': f'第 {idx + 1} 个食材请选择单位'}), 400
@@ -428,7 +430,7 @@ def update_recipe(recipe_id, validated_data):
             cursor.execute(insert_ingredient_query, (
                 recipe_id,
                 ing['name'].strip(),
-                ing['amount'],
+                float(ing['amount']),
                 ing['unit_id']
             ))
         
@@ -538,33 +540,6 @@ def add_to_weekly_menu(validated_data):
         conn.close()
 
 
-@app.route('/api/weekly-menu/<int:recipe_id>', methods=['DELETE'])
-def remove_from_weekly_menu(recipe_id):
-    """从本周菜单移除食谱"""
-    conn = get_db_connection()
-    if not conn:
-        return jsonify({'message': '数据库连接失败'}), 500
-    
-    try:
-        cursor = conn.cursor()
-        
-        # 检查是否在菜单中
-        cursor.execute('SELECT id FROM weekly_menu WHERE recipe_id = %s', (recipe_id,))
-        if not cursor.fetchone():
-            return jsonify({'message': '食谱不在菜单中'}), 404
-        
-        # 从菜单移除
-        cursor.execute('DELETE FROM weekly_menu WHERE recipe_id = %s', (recipe_id,))
-        conn.commit()
-        
-        return jsonify({'message': '已从菜单中移除'})
-    except Error as e:
-        conn.rollback()
-        return jsonify({'message': f'从菜单移除失败: {str(e)}'}), 500
-    finally:
-        conn.close()
-
-
 @app.route('/api/weekly-menu/shopping-list', methods=['GET'])
 def get_shopping_list():
     """获取购物清单（合并同名食材用量）"""
@@ -601,6 +576,33 @@ def get_shopping_list():
                 item['total_amount'] = round(amount, 2)
         
         return jsonify(shopping_list)
+    finally:
+        conn.close()
+
+
+@app.route('/api/weekly-menu/<int:recipe_id>', methods=['DELETE'])
+def remove_from_weekly_menu(recipe_id):
+    """从本周菜单移除食谱"""
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'message': '数据库连接失败'}), 500
+    
+    try:
+        cursor = conn.cursor()
+        
+        # 检查是否在菜单中
+        cursor.execute('SELECT id FROM weekly_menu WHERE recipe_id = %s', (recipe_id,))
+        if not cursor.fetchone():
+            return jsonify({'message': '食谱不在菜单中'}), 404
+        
+        # 从菜单移除
+        cursor.execute('DELETE FROM weekly_menu WHERE recipe_id = %s', (recipe_id,))
+        conn.commit()
+        
+        return jsonify({'message': '已从菜单中移除'})
+    except Error as e:
+        conn.rollback()
+        return jsonify({'message': f'从菜单移除失败: {str(e)}'}), 500
     finally:
         conn.close()
 
